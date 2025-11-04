@@ -31,6 +31,7 @@ log() {
 # --- MONITOR/DESKTOP DATA LOADING ---
 
 read_monitor_data() {
+# ... (existing code ... no changes) ...
     MONITOR_COUNT=$(grep '^MONITOR_COUNT=' "$MONITOR_DATA_FILE" | cut -d'=' -f2)
 
     m_idx=1
@@ -45,6 +46,7 @@ read_monitor_data() {
 }
 
 read_desktop_names() {
+# ... (existing code ... no changes) ...
     DESKTOP_COUNT=$(grep '^DESKTOP_COUNT=' "$DESKTOP_DATA_FILE" | cut -d'=' -f2)
 
     d_idx=0
@@ -55,6 +57,7 @@ read_desktop_names() {
 }
 
 get_monitor_id() {
+# ... (existing code ... no changes) ...
     local win_x=$1 win_y=$2 win_w=$3 win_h=$4
     local center_x=$((win_x + win_w / 2))
     local center_y=$((win_y + win_h / 2))
@@ -83,6 +86,7 @@ log "MODULE 03 START"
 
 # --- DEPENDENCY CHECK & DATA LOAD ---
 if [ ! -f "$MONITOR_DATA_FILE" ]; then
+# ... (existing code ... no changes) ...
     log "FAILURE: Monitor data file $MONITOR_DATA_FILE not found."
     printf "❌ M03 FAILED: Monitor data file not found.\n"
     exit 1
@@ -90,6 +94,7 @@ fi
 read_monitor_data
 
 if [ ! -f "$DESKTOP_DATA_FILE" ]; then
+# ... (existing code ... no changes) ...
     log "FAILURE: Desktop data file $DESKTOP_DATA_FILE not found."
     printf "❌ M03 FAILED: Desktop data file not found.\n"
     exit 1
@@ -97,6 +102,7 @@ fi
 read_desktop_names
 
 if [ -z "${MONITOR_COUNT:-}" ] || [ "$MONITOR_COUNT" -eq 0 ]; then
+# ... (existing code ... no changes) ...
     log "FAILURE: Monitor count is zero or missing in data file."
     printf "❌ M03 FAILED: Monitor count is zero or missing.\n"
     exit 1
@@ -105,6 +111,7 @@ fi
 # --- WINDOW DATA ACQUISITION ---
 log "EXECUTING WMCTRL -LXG"
 if ! wmctrl -lxG > "$TEMP_WMCTRL_FILE"; then
+# ... (existing code ... no changes) ...
     log "FAILURE: Command 'wmctrl -lxG' failed."
     printf "❌ M03 FAILED: wmctrl command failed. Please ensure wmctrl is installed.\n"
     exit 1
@@ -114,6 +121,7 @@ fi
 log "AWK: FILTERING WINDOWS"
 
 awk -f - "$TEMP_WMCTRL_FILE" > "$TEMP_UNSORTED_FILE" <<'AWK'
+# ... (existing code ... no changes) ...
 ! /xfce4-panel|xfdesktop/ && $2 != "-1" {
     split($7, class_res, ".")
     window_title = ""
@@ -133,6 +141,7 @@ WINDOW_COUNT=0
 : > "$TEMP_UNSORTED_FINAL"
 
 while IFS='|' read -r WID DESKTOP POS_X POS_Y WIDTH HEIGHT CLASS RESOURCE TITLE; do
+# ... (existing code ... no changes) ...
     
     MONITOR_ID=$(get_monitor_id "$POS_X" "$POS_Y" "$WIDTH" "$HEIGHT")
     
@@ -143,18 +152,24 @@ while IFS='|' read -r WID DESKTOP POS_X POS_Y WIDTH HEIGHT CLASS RESOURCE TITLE;
     
     WINDOW_COUNT=$((WINDOW_COUNT + 1))
     
+    # CRITICAL FIX: Sanitize strings for safe 'source'-ing using %q
+    # This correctly handles quotes and special characters in titles.
+    CLASS_Q=$(printf "%q" "$CLASS")
+    RESOURCE_Q=$(printf "%q" "$RESOURCE")
+    TITLE_Q=$(printf "%q" "$TITLE")
+    
     FULL_WINDOW_BLOCK=$(
         printf "WINDOW_%s_DESKTOP=%s^WINDOW_%s_MONITOR=%s^WINDOW_%s_WID=%s^WINDOW_%s_CLASS=%s^WINDOW_%s_RESOURCE=%s^WINDOW_%s_POS_X=%s^WINDOW_%s_POS_Y=%s^WINDOW_%s_WIDTH=%s^WINDOW_%s_HEIGHT=%s^WINDOW_%s_TITLE=%s" \
         "$WINDOW_COUNT" "$DESKTOP" \
         "$WINDOW_COUNT" "$MONITOR_ID" \
         "$WINDOW_COUNT" "$WID" \
-        "$WINDOW_COUNT" "$CLASS" \
-        "$WINDOW_COUNT" "$RESOURCE" \
+        "$WINDOW_COUNT" "$CLASS_Q" \
+        "$WINDOW_COUNT" "$RESOURCE_Q" \
         "$WINDOW_COUNT" "$POS_X" \
         "$WINDOW_COUNT" "$POS_Y" \
         "$WINDOW_COUNT" "$WIDTH" \
         "$WINDOW_COUNT" "$HEIGHT" \
-        "$WINDOW_COUNT" "$TITLE"
+        "$WINDOW_COUNT" "$TITLE_Q"
     )
     
     printf "%s|%s|%s|%s\n" "$DESKTOP" "$MONITOR_ID" "$WID" "$FULL_WINDOW_BLOCK" >> "$TEMP_UNSORTED_FINAL"
@@ -166,6 +181,7 @@ SORTED_DATA=$(sort -t '|' -k1,1n -k2,2n -k3,3 "$TEMP_UNSORTED_FINAL")
 
 # --- FINAL FORMATTING AND VALIDATION ---
 if [ "$WINDOW_COUNT" -eq 0 ]; then
+# ... (existing code ... no changes) ...
     log "SUCCESS (EMPTY): NO STANDARD WINDOWS FOUND TO MANAGE. WINDOW_COUNT=0."
     printf "WINDOW_COUNT=0\n" > "$DATA_FILE"
     cp "$DATA_FILE" "$LAST_VALID_STATE_FILE"
@@ -180,6 +196,7 @@ FINAL_WINDOW_COUNT_REINDEXED=0
 : > "$TEMP_FINAL_DATA"
 
 while IFS='|' read -r SORT_DESKTOP SORT_MONITOR SORT_WID FULL_WINDOW_BLOCK; do
+# ... (existing code ... no changes) ...
     FINAL_WINDOW_COUNT_REINDEXED=$((FINAL_WINDOW_COUNT_REINDEXED + 1))
     
     REINDEXED_LINE=$(echo "$FULL_WINDOW_BLOCK" | sed "s/WINDOW_[0-9]*_/WINDOW_${FINAL_WINDOW_COUNT_REINDEXED}_/g")
@@ -195,11 +212,13 @@ printf "WINDOW_COUNT=%s\n" "$FINAL_WINDOW_COUNT_REINDEXED" > "$DATA_FILE"
 
 CURRENT_DESKTOP=""
 CURRENT_MONITOR=""
+# ... (existing code ... no changes) ...
 WINDOW_BLOCK_BUFFER=""
 
 while IFS= read -r line; do
 
     if [[ "$line" == WINDOW_?*_DESKTOP=* ]]; then
+# ... (existing code ... no changes) ...
         WINDOW_BLOCK_BUFFER=""
 
         NEW_DESKTOP=${line##*=}
@@ -221,6 +240,7 @@ while IFS= read -r line; do
         WINDOW_BLOCK_BUFFER+="$line"$'\n'
 
     elif [[ "$line" == WINDOW_?*_MONITOR=* ]]; then
+# ... (existing code ... no changes) ...
         NEW_MONITOR=${line##*=}
 
         if [ "$NEW_MONITOR" != "$CURRENT_MONITOR" ]; then
@@ -233,6 +253,7 @@ while IFS= read -r line; do
         WINDOW_BLOCK_BUFFER+="$line"$'\n'
 
     elif [[ "$line" == WINDOW_?*_WID=* ]]; then
+# ... (existing code ... no changes) ...
         WINDOW_INDEX=$(echo "$line" | cut -d'_' -f2)
 
         printf "\n# --- WINDOW %s ---\n" "$WINDOW_INDEX" >> "$DATA_FILE"
@@ -243,6 +264,7 @@ while IFS= read -r line; do
         printf "%s\n" "$line" >> "$DATA_FILE"
 
     else
+# ... (existing code ... no changes) ...
         printf "%s\n" "$line" >> "$DATA_FILE"
     fi
 
@@ -255,3 +277,4 @@ log "DATA STATE SUCCESSFULLY BACKED UP."
 printf "✅ M03 SUCCESS: Captured %s active window(s) with Desktop/Monitor/Window hierarchy.\n" "$FINAL_WINDOW_COUNT_REINDEXED"
 log "MODULE 03 END (SUCCESS)"
 exit 0
+

@@ -3,29 +3,31 @@
 # File: 01_Screen-Resolution.sh
 # Description: Captures the geometry of the active X11 monitors and calculates the total viewport size.
 
-# --- PATH CONFIGURATION ---
+# ===== PATH CONFIGURATION =====
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 
+# ===== DIRECTORY GUARANTEE =====
+mkdir -p "$ROOT_DIR/Logs" \
+         "$ROOT_DIR/Data" \
+         "$ROOT_DIR/Last-Valid-States"
+
 LOG_FILE="$ROOT_DIR/Logs/01_Screen-Resolution.log"
 DATA_FILE="$ROOT_DIR/Data/01_Screen-Resolution.data"
-LAST_VALID_STATE_FILE="$ROOT_DIR/History/01_Screen-Resolution.last_valid_state"
+LAST_VALID_STATE_FILE="$ROOT_DIR/Last-Valid-States/01_Screen-Resolution.last-valid-state"
 TEMP_FILE="/tmp/xrandr_monitors_$$"
 
-# --- UTILITY FUNCTIONS ---
-
+# ===== UTILITY FUNCTIONS =====
 log() {
     printf "[%s] %s\n" "$(date +'%H:%M:%S')" "$1" >> "$LOG_FILE"
 }
 
-# --- INITIALIZATION ---
-
+# ===== INITIALIZATION =====
 : > "$LOG_FILE"
 trap 'rm -f "$TEMP_FILE"' EXIT
 log "MODULE 01 START"
 
-# --- DATA ACQUISITION ---
-
+# ===== DATA ACQUISITION =====
 log "ACQUIRING MONITOR LIST"
 
 if ! xrandr --listactivemonitors > "$TEMP_FILE" 2>/dev/null; then
@@ -42,7 +44,7 @@ DEBUG_LINES=""
 
 geom_re='([0-9]+)(/[^x+]*)?x([0-9]+)(/[^+ ]*)?\+([0-9]+)\+([0-9]+)'
 
-# --- PARSING LOGIC ---
+# ===== PARSING LOGIC =====
 _parse_file() {
     local file="$1"
     while IFS= read -r line; do
@@ -71,7 +73,7 @@ _parse_file() {
     done < "$file"
 }
 
-# --- EXECUTION FLOW ---
+# ===== EXECUTION FLOW =====
 _parse_file "$TEMP_FILE"
 
 if [ "$monitor_count" -eq 0 ]; then
@@ -93,7 +95,7 @@ VIEWPORT_WIDTH=$(printf "%s\n" "$CALCULATED_DATA" | awk -F'=' '/VIEWPORT_WIDTH/ 
 VIEWPORT_HEIGHT=$(printf "%s\n" "$CALCULATED_DATA" | awk -F'=' '/VIEWPORT_HEIGHT/ {print $2}')
 MONITOR_COUNT=$(printf "%s\n" "$CALCULATED_DATA" | awk -F'=' '/MONITOR_COUNT/ {print $2}')
 
-# --- FAILURE CHECK ---
+# ===== FAILURE CHECK =====
 if [ -z "$VIEWPORT_WIDTH" ] || [ -z "$VIEWPORT_HEIGHT" ] || [ -z "$MONITOR_COUNT" ] || [ "$MONITOR_COUNT" -eq 0 ]; then
     log "FAILURE: ESSENTIAL GEOMETRY DATA IS MISSING."
     log "DEBUG: AWK_OUTPUT CONTENT:"
@@ -107,8 +109,7 @@ if [ -z "$VIEWPORT_WIDTH" ] || [ -z "$VIEWPORT_HEIGHT" ] || [ -z "$MONITOR_COUNT
     exit 1
 fi
 
-# --- FINAL OUTPUT AND STATE PERSISTENCE ---
-
+# ===== FINAL OUTPUT AND STATE PERSISTENCE =====
 log "GENERATING FINAL OUTPUT AND PERSISTING STATE"
 
 {

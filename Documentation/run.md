@@ -1,104 +1,108 @@
-# 📘 **Main Orchestrator: `00_main.sh`**
+# 🎬 Main Orchestrator: `run.sh`
 
-The `00_main.sh` script is the **heart of the Float-to-Tile system**.  
-Its responsibility is to ensure a **robust and centralized execution** of all modules.
+## 🎯 Objective
+The `run.sh` script is the central nervous system of the Float-to-Tile suite. Its responsibility is to execute the data collection modules (`01` through `07`) in a strict **sequential order**.
 
----
-
-## ✨ **Mission of the Orchestrator (Fault Tolerant)**
-
-| # | Functionality | Key Detail |
-|---|----------------|------------|
-| 1 | **Sequential Management** | Executes all data collection modules (`NN_*.sh`) in order. |
-| 2 | **Centralized Logging** | Ensures centralized and readable logs in the `00_main.log` file. |
-| 3 | **Fault Tolerance** | **NEW:** It does **NOT** stop on failure. It records the failure (`ORCHESTRATION_FAILED`), continues to the next module, and signals global failure only at the end. |
+**Key Characteristics:**
+1. **Sequential Execution:** Runs modules one by one (`01` → `02` → ...).
+2. **Fail-Fast Architecture:** Unlike loose orchestrators, this script stops immediately if a module fails. Since Module 02 depends on Module 01, continuing after a failure would produce corrupted data.
+3. **Centralized Logging:** Aggregates the status of all operations into `Logs/run.log`.
 
 ---
 
-## 💾 **Code Breakdown (by Logical Blocks)**
+## 🧠 Logic: The Execution Flow
 
-### 1️⃣ **Setup and Initialization**
+The script relies on the file naming convention `??_*.sh` (where `??` are digits) to ensure modules run in the correct order.
+
+1. **Initialization:** Sets up paths and clears the previous log.
+2. **The Loop:** Iterates through every script in the `Scripts/` directory.
+3. **Status Check:** After every execution, it checks the Exit Code (`$?`).
+4. **Circuit Breaker:** If a module returns a non-zero exit code (Failure), the orchestrator flags a global error and **breaks** the loop immediately to prevent cascading errors.
+
+---
+
+## 💾 Code Breakdown (By Logical Blocks)
+
+### 1️⃣ Setup & Path Configuration
+The script resolves absolute paths dynamically, ensuring it works regardless of the working directory.
 
 ```bash
-SCRIPT_DIR="$(dirname "$0")"
-MAIN_LOG_FILE="./00_main.log"
-ORCHESTRATION_FAILED=0
+SCRIPT_ROOT_DIR="$(dirname "$0")"
+LOG_DIR="$SCRIPT_ROOT_DIR/Logs"
+SCRIPTS_DIR="$SCRIPT_ROOT_DIR/Scripts"
 
-# Clears the main log before each new run
-: > "$MAIN_LOG_FILE"
-main_log "ORCHESTRATION START"
+# Global Flag to track overall success/failure
+ORCHESTRATION_FAILED=0
 ```
 
-| Variable/Command | Explanation |
-|------------------|-------------|
-| `ORCHESTRATION_FAILED=0` | **NEW.** This global flag tracks if any module failed. It's set to `1` upon the first non-zero exit code. |
-| `: > "$MAIN_LOG_FILE"` | Uses the null command (`:`) with redirection to clear the log before starting. |
-
 ---
 
-### 2️⃣ **Essential Functions**
+### 2️⃣ Utility Functions
 
-#### 🧩 **A. Function `main_log()`**
-
-Encapsulates all log writing, ensuring consistent formatting.
+#### 📝 Logging
+Simple wrapper to append timestamped messages to the main log file.
 
 ```bash
-main_log() {
+log() {
     local message="$1"
-    printf "[%s] %s\n" "$(date +'%Y-%m-%d %H:%M:%S')" "$message" >> "$MAIN_LOG_FILE"
+    printf "[%s] %s\n" "$(date +'%H:%M:%S')" "$message" >> "$LOG_DIR/run.log"
 }
 ```
 
-**Log:** The `>>` operator appends messages to the end of the log file with each call.
-
----
-
-#### ⚙️ **B. Function `check_status()` (Fault Tolerant Logic)**
-
-Implements Fault Tolerance logic. It records the failure without exiting the main script.
+#### 🚦 Status Checking (`check_status`)
+This function is called immediately after a module runs. It serves as the judge of the operation.
 
 ```bash
 check_status() {
     local exit_code=$?
-    local module_path="$1"
-
+    # ...
     if [ "$exit_code" -ne 0 ]; then
-        # ... (Error feedback and logging) ...
-        ORCHESTRATION_FAILED=1 # CRITICAL: Sets the global flag to signal failure
+        # Log failure and FLIP THE SWITCH
+        ORCHESTRATION_FAILED=1
     else
-        # ... (Success feedback and logging) ...
+        # Log success
     fi
 }
 ```
 
-| Key Point | Explanation |
-|------------|-------------|
-| `local exit_code=$?` | Captures the exit code of the last executed command. |
-| **Tolerance Logic** | If a failure occurs, the `ORCHESTRATION_FAILED` flag is set to `1`. Crucially, the script does **NOT** halt, allowing the execution loop to continue. |
+---
+
+### 3️⃣ The Execution Loop (Circuit Breaker)
+
+This block contains the critical "Fail-Fast" logic.
+
+```bash
+for module_path in "$SCRIPTS_DIR"/??_*.sh; do
+    # 1. Execute the module
+    "$module_path"
+
+    # 2. Verify the result
+    check_status "$module_path"
+
+    # 3. CIRCUIT BREAKER: Stop immediately if something broke
+    if [ "$ORCHESTRATION_FAILED" -eq 1 ]; then
+        log "CRITICAL FAILURE: STOPPING EXECUTION SEQUENCE."
+        break
+    fi
+done
+```
 
 ---
 
-### 3️⃣ **Orchestration Loop and Finalization**
+## 📄 Log Output: `run.log`
 
-The orchestrator executes all modules and determines the final exit code based on the global failure flag.
+The orchestrator produces a clean summary of the entire pipeline.
 
-```bash
-for module_path in "$SCRIPT_DIR"/??_*.sh; do
-    # ... (Module execution and check_status call) ...
-done
-
-# --- FINALIZATION ---
-# Determines the final exit code based on the global failure flag.
-if [ "$ORCHESTRATION_FAILED" -eq 1 ]; then
-    main_log "ORCHESTRATION COMPLETE (WITH FAILURES)"
-    # ... (Console output) ...
-    exit 1
-else
-    main_log "ORCHESTRATION COMPLETE (SUCCESS)"
-    # ... (Console output) ...
-    exit 0
-fi
+```text
+ORCHESTRATION START
+MODULE SUCCESS: 01_Screen-Resolution.sh.
+MODULE SUCCESS: 02_Desktop-Details.sh.
+MODULE SUCCESS: 03_Window-List.sh.
+MODULE SUCCESS: 04_Monitor-Area.sh.
+MODULE SUCCESS: 05_Floating-WIDs.sh.
+MODULE SUCCESS: 06_Window-Cycle-Map.sh.
+MODULE SUCCESS: 07_Layout-Matrices.sh.
+ORCHESTRATION COMPLETE (SUCCESS)
 ```
 
-**Loop:** The flow remains `Execute → Verify`, but verification no longer halts the process.  
-**Finalization:** The final `if/else` block checks the state of `ORCHESTRATION_FAILED` after all modules have run and sets the final exit code for the script accordingly.
+If a module fails (e.g., `03_Window-List.sh`), the log will show the failure and stop there, omitting 04, 05, etc.

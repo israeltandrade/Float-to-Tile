@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # File: AC07_Toggle-Float.sh
 # Description: v3.6. Toggle a window between floating and tiled states. When floating, do NOT force the window 'above' — only change geometry/position.
 
@@ -167,10 +167,6 @@ if [[ -n "$FLOAT_WID_LIST" ]]; then
 fi
 
 for win_can in "${FLOAT_WID_ARRAY[@]}"; do
-    win_dec=$((win_can))
-    if (( win_dec == ACTIVE_WID_DEC )); then
-        continue
-    fi
     NEW_FLOAT_WID_ARRAY+=("$win_can")
 done
 
@@ -286,6 +282,7 @@ else
         printf "WID_%s_Y=%s\n" "$ACTIVE_WID_CAN" "$ACTIVE_WIN_Y"
         printf "WID_%s_W=%s\n" "$ACTIVE_WID_CAN" "$ACTIVE_WIN_W"
         printf "WID_%s_H=%s\n" "$ACTIVE_WID_CAN" "$ACTIVE_WIN_H"
+        printf "\n"
     } >> "$LAST_STATE_FILE"
 
     log "INFO: Saved structured geometry block for $ACTIVE_WID_CAN to $LAST_STATE_FILE."

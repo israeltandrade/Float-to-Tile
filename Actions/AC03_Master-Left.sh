@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # File: AC03_Master-Left.sh
 # Description: v2.6 - safe printf wrapper + fixes. Master-left layout (safe writers, master/stack tiling, terminal size adjustments).
 set -euo pipefail
@@ -69,7 +69,7 @@ else
 fi
 
 # ===== CHECK REQUIRED DATA FILES =====
-required=( "01_Screen-Resolution.data" "02_Desktop-Details.data" "03_Window-List.data" "04_Monitor-Area.data" "06_Window-Cycle-Map.data" )
+required=( "01_Screen-Resolution.data" "02_Desktop-Details.data" "03_Window-List.data" "04_Monitor-Area.data" "06_Window-Cycle-Map.data" "08_Normalize-Windows.data" )
 for f in "${required[@]}"; do
     if [[ ! -f "$DATA_DIR/$f" ]]; then
         log "ERROR: Required $f missing in $DATA_DIR. Exiting."
@@ -89,6 +89,8 @@ source "$DATA_DIR/03_Window-List.data"
 source "$DATA_DIR/04_Monitor-Area.data"
 # shellcheck disable=SC1090
 source "$DATA_DIR/06_Window-Cycle-Map.data"
+# shellcheck disable=SC1090
+source "$DATA_DIR/08_Normalize-Windows.data"
 
 if [[ -f "$DATA_DIR/07_Layout-Matrices.data" ]]; then
     # shellcheck disable=SC1090
@@ -117,9 +119,34 @@ for ((i=1; i<=${WINDOW_COUNT:-0}; i++)); do
         VAR_CLS="WINDOW_${i}_CLASS"
         VAR_TITLE="WINDOW_${i}_TITLE"
 
-        MAP_MIN_W["$WID"]="${!VAR_MW:-100}"
-        MAP_MIN_H["$WID"]="${!VAR_MH:-100}"
-        MAP_CLASS["$WID"]="${!VAR_CLS:-unknown}"
+        ORIGINAL_MIN_W="${!VAR_MW:-100}"
+        ORIGINAL_MIN_H="${!VAR_MH:-100}"
+        CLASS_NAME="${!VAR_CLS:-unknown}"
+
+        # Get overridden base values from 08_Normalize-Windows.data
+        VAR_BASE_W_FROM_08="WID_${WID}_BASE_W"
+        VAR_BASE_H_FROM_08="WID_${WID}_BASE_H"
+        OVERRIDDEN_BASE_W="${!VAR_BASE_W_FROM_08:-}"
+        OVERRIDDEN_BASE_H="${!VAR_BASE_H_FROM_08:-}"
+
+        # Apply override for Firefox if its base values are set to 1
+        if [[ "$CLASS_NAME" == "Navigator" || "$CLASS_NAME" == "firefox" ]]; then
+            if [[ -n "$OVERRIDDEN_BASE_W" && "$OVERRIDDEN_BASE_W" -eq 1 ]]; then
+                MAP_MIN_W["$WID"]=1
+            else
+                MAP_MIN_W["$WID"]="$ORIGINAL_MIN_W"
+            fi
+            if [[ -n "$OVERRIDDEN_BASE_H" && "$OVERRIDDEN_BASE_H" -eq 1 ]]; then
+                MAP_MIN_H["$WID"]=1
+            else
+                MAP_MIN_H["$WID"]="$ORIGINAL_MIN_H"
+            fi
+        else
+            MAP_MIN_W["$WID"]="$ORIGINAL_MIN_W"
+            MAP_MIN_H["$WID"]="$ORIGINAL_MIN_H"
+        fi
+
+        MAP_CLASS["$WID"]="$CLASS_NAME"
         title="${!VAR_TITLE:-unknown}"
         title="${title//[$'\r\n']/ }"
         MAP_TITLE["$WID"]="$title"
@@ -154,7 +181,7 @@ get_wid_list_for() {
         local key="D${D}_M${M}_CYCLE_LIST"
         widlist="${!key:-}"
     fi
-    printf '%s' "$widlist" | tr -d "'" | awk '{\$1=\$1; print}'
+    printf '%s' "$widlist" | tr -d "'" | awk '{$1=$1; print}'
 }
 
 # ===== LOOP MONITORS ON ACTIVE DESKTOP =====
@@ -231,13 +258,32 @@ for ((m_id=1; m_id<=${MONITOR_COUNT:-0}; m_id++)); do
 
     TARGET_MASTER_W=$ACTUAL_MASTER_W
     TARGET_MASTER_H=$SAFE_H
-    CLASS="${MAP_CLASS[$MASTER_WID]:-unknown}"
-    if [[ "$CLASS" == "xfce4-terminal" ]]; then
-        TARGET_MASTER_W=$(( TARGET_MASTER_W - 16 ))
-        TARGET_MASTER_H=$(( TARGET_MASTER_H - 32 ))
-        if [ "$TARGET_MASTER_W" -lt 10 ]; then TARGET_MASTER_W=10; fi
-        if [ "$TARGET_MASTER_H" -lt 10 ]; then TARGET_MASTER_H=10; fi
+    
+    # ===== GRID-UNIT WINDOW ADJUSTMENT =====
+    VAR_HAS_GRID="WID_${MASTER_WID}_HAS_GRID"
+    if [[ "${!VAR_HAS_GRID:-}" == "1" ]]; then
+        VAR_BASE_W="WID_${MASTER_WID}_BASE_W"
+        VAR_BASE_H="WID_${MASTER_WID}_BASE_H"
+        VAR_INC_W="WID_${MASTER_WID}_INC_W"
+        VAR_INC_H="WID_${MASTER_WID}_INC_H"
+
+        BASE_W=${!VAR_BASE_W:-0}
+        BASE_H=${!VAR_BASE_H:-0}
+        INC_W=${!VAR_INC_W:-1}
+        INC_H=${!VAR_INC_H:-1}
+
+        if [ "$INC_W" -eq 0 ]; then INC_W=1; fi
+        if [ "$INC_H" -eq 0 ]; then INC_H=1; fi
+
+        GRID_W=$(( (TARGET_MASTER_W - BASE_W) / INC_W ))
+        GRID_H=$(( (TARGET_MASTER_H - BASE_H) / INC_H ))
+
+        TARGET_MASTER_W=$(( BASE_W + GRID_W * INC_W ))
+        TARGET_MASTER_H=$(( BASE_H + GRID_H * INC_H ))
     fi
+    
+    if [ "$TARGET_MASTER_W" -lt 10 ]; then TARGET_MASTER_W=10; fi
+    if [ "$TARGET_MASTER_H" -lt 10 ]; then TARGET_MASTER_H=10; fi
 
     wmctrl -i -r "$MASTER_WID" -b 'remove,maximized_vert,maximized_horz,fullscreen' || true
     if wmctrl -i -r "$MASTER_WID" -e 0,"$SAFE_X","$SAFE_Y","$TARGET_MASTER_W","$TARGET_MASTER_H"; then
@@ -292,11 +338,31 @@ for ((m_id=1; m_id<=${MONITOR_COUNT:-0}; m_id++)); do
 
             TARGET_STACK_W=$ACTUAL_W
             TARGET_STACK_H=$ACTUAL_H
-            CLASS_STACK="${MAP_CLASS[$WID]:-unknown}"
-            if [[ "$CLASS_STACK" == "xfce4-terminal" ]]; then
-                TARGET_STACK_H=$(( TARGET_STACK_H - 32 ))
-                if [ "$TARGET_STACK_H" -lt 10 ]; then TARGET_STACK_H=10; fi
+
+            # ===== GRID-UNIT WINDOW ADJUSTMENT =====
+            VAR_HAS_GRID="WID_${WID}_HAS_GRID"
+            if [[ "${!VAR_HAS_GRID:-}" == "1" ]]; then
+                VAR_BASE_W="WID_${WID}_BASE_W"
+                VAR_BASE_H="WID_${WID}_BASE_H"
+                VAR_INC_W="WID_${WID}_INC_W"
+                VAR_INC_H="WID_${WID}_INC_H"
+
+                BASE_W=${!VAR_BASE_W:-0}
+                BASE_H=${!VAR_BASE_H:-0}
+                INC_W=${!VAR_INC_W:-1}
+                INC_H=${!VAR_INC_H:-1}
+
+                if [ "$INC_W" -eq 0 ]; then INC_W=1; fi
+                if [ "$INC_H" -eq 0 ]; then INC_H=1; fi
+
+                GRID_W=$(( (TARGET_STACK_W - BASE_W) / INC_W ))
+                GRID_H=$(( (TARGET_STACK_H - BASE_H) / INC_H ))
+
+                TARGET_STACK_W=$(( BASE_W + GRID_W * INC_W ))
+                TARGET_STACK_H=$(( BASE_H + GRID_H * INC_H ))
             fi
+            
+            if [ "$TARGET_STACK_H" -lt 10 ]; then TARGET_STACK_H=10; fi
 
             wmctrl -i -r "$WID" -b 'remove,maximized_vert,maximized_horz,fullscreen' || true
             if wmctrl -i -r "$WID" -e 0,"$POS_X","$POS_Y","$TARGET_STACK_W","$TARGET_STACK_H"; then

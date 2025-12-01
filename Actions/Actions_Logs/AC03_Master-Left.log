@@ -1,0 +1,12 @@
+2025-11-27 14:51:50 [AC03_Master-Left] - INFO: Script started (v2.6 SafeWriter).
+2025-11-27 14:51:50 [AC03_Master-Left] - INFO: Running run.sh to refresh data...
+2025-11-27 14:51:55 [AC03_Master-Left] - INFO: Loaded 07_Layout-Matrices.data (preferred).
+2025-11-27 14:51:55 [AC03_Master-Left] - INFO: Building WID metadata maps...
+2025-11-27 14:51:55 [AC03_Master-Left] - INFO: ACTIVE_DESKTOP=1
+2025-11-27 14:51:55 [AC03_Master-Left] - INFO: MONITOR 1 - count=1 safe=1894x962 at 373,1677
+2025-11-27 14:51:55 [AC03_Master-Left] - INFO: Master 0x07400003 applied 1892x959 at 373,1677
+2025-11-27 14:51:55 [AC03_Master-Left] - INFO: MONITOR 2 - count=2 safe=2854x1502 at 13,57
+2025-11-27 14:51:55 [AC03_Master-Left] - INFO: Master 0x0700003e applied 1423x1502 at 13,57
+2025-11-27 14:51:55 [AC03_Master-Left] - INFO: Stack 0x05c00004 applied 1424x1502 at 1443,57
+2025-11-27 14:51:55 [AC03_Master-Left] - INFO: Last valid state written to /home/israel/.config/Scripts_X11/Float-to-Tile/Actions/Actions_Last-Valid-States/AC03_Master-Left.last-valid-state
+INFO: Last valid state written to /home/israel/.config/Scripts_X11/Float-to-Tile/Actions/Actions_Last-Valid-States/AC03_Master-Left.last-valid-state

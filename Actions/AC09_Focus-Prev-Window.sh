@@ -19,9 +19,13 @@ M03_FILE="$DATA_DIR/03_Window-List.data"
 RUN_SH="$ROOT_DIR/run.sh"
 
 LAST_STATE_DIR="$ROOT_DIR/Actions/Actions_Last-Valid-States"
+ALT_LAST_STATE_DIR="$ROOT_DIR/Last-Valid-States"
 LAST_STATE_FILE="$LAST_STATE_DIR/AC09_Focus-Prev-Window.last-valid-state"
 
-mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null || true
+if ! mkdir -p "$(dirname "$LOG_FILE")"; then
+  echo "ERROR: cannot create log directory: $(dirname "$LOG_FILE")" >&2
+  exit 1
+fi
 
 log() {
   local lvl="$1"; shift
@@ -88,16 +92,82 @@ write_last_state() {
 }
 
 # ===== LOAD ENVIRONMENT (run.sh, config, data) =====
-if [[ -x "$RUN_SH" ]]; then
-  if ! "$RUN_SH"; then
-    log "WARNING" "run.sh failed (continuing — assuming existing data in $DATA_DIR)."
-  else
-    log "INFO" "run.sh executed successfully."
-  fi
-else
-  log "WARNING" "run.sh not found/executable: $RUN_SH. Continuing with existing data."
+
+# Prefer .data; if missing, try .last-valid-state in known dirs.
+m03_found=false
+m06_found=false
+
+if [[ -f "$M03_FILE" && -s "$M03_FILE" ]]; then
+  m03_found=true
+  log "INFO" "Found M03 data: $M03_FILE"
 fi
 
+if [[ -f "$M06_FILE" && -s "$M06_FILE" ]]; then
+  m06_found=true
+  log "INFO" "Found M06 data: $M06_FILE"
+fi
+
+try_last_valid_state() {
+  local base_name="$1"    # e.g., 03_Window-List
+  local varname="$2"      # variable name to update (M03_FILE / M06_FILE)
+  local data_path="${!varname}"
+  if [[ -f "$data_path" && -s "$data_path" ]]; then
+    return 0
+  fi
+  local candidate
+  for dir in "$LAST_STATE_DIR" "$ALT_LAST_STATE_DIR" "$ROOT_DIR/Actions_Last-Valid-States"; do
+    candidate="$dir/${base_name}.last-valid-state"
+    if [[ -f "$candidate" && -s "$candidate" ]]; then
+      eval "$varname=\"\$candidate\""
+      log "INFO" "Using last-valid-state for ${base_name}: $candidate"
+      return 0
+    fi
+  done
+  return 1
+}
+
+if ! $m03_found; then
+  if try_last_valid_state "03_Window-List" "M03_FILE"; then
+    m03_found=true
+  else
+    log "INFO" "M03 .data not found; no last-valid-state found yet."
+  fi
+fi
+
+if ! $m06_found; then
+  if try_last_valid_state "06_Window-Cycle-Map" "M06_FILE"; then
+    m06_found=true
+  else
+    log "INFO" "M06 .data not found; no last-valid-state found yet."
+  fi
+fi
+
+# If both present (either .data or .last-valid-state), skip running run.sh
+if $m03_found && $m06_found; then
+  log "INFO" "Both M03 and M06 available. Skipping run.sh."
+else
+  if [[ -x "$RUN_SH" ]]; then
+    log "INFO" "Needed data missing; executing run.sh to regenerate data."
+    if ! "$RUN_SH"; then
+      log "WARNING" "run.sh failed (continuing — assuming existing data in $DATA_DIR)."
+    else
+      log "INFO" "run.sh executed successfully."
+    fi
+    # re-check after run.sh
+    if [[ -f "$M03_FILE" && -s "$M03_FILE" ]]; then
+      m03_found=true
+      log "INFO" "M03 present after run.sh: $M03_FILE"
+    fi
+    if [[ -f "$M06_FILE" && -s "$M06_FILE" ]]; then
+      m06_found=true
+      log "INFO" "M06 present after run.sh: $M06_FILE"
+    fi
+  else
+    log "WARNING" "run.sh not found/executable: $RUN_SH. Will attempt to proceed with any available data or last-valid-state."
+  fi
+fi
+
+# Load config if present
 if [[ -f "$CONFIG_FILE" ]]; then
   source "$CONFIG_FILE"
   log "INFO" "Loaded $CONFIG_FILE."
@@ -105,7 +175,8 @@ else
   log "WARNING" "Config file not found: $CONFIG_FILE. Proceeding with defaults."
 fi
 
-if [[ -f "$M03_FILE" ]]; then
+# Ensure M03 and M06 are present now (either .data or .last-valid-state)
+if [[ -f "$M03_FILE" && -s "$M03_FILE" ]]; then
   source "$M03_FILE"
   log "INFO" "Loaded $M03_FILE."
 else
@@ -113,7 +184,7 @@ else
   printf "❌ AC09 FAILED: Missing M03 data.\n"; exit 1
 fi
 
-if [[ -f "$M06_FILE" ]]; then
+if [[ -f "$M06_FILE" && -s "$M06_FILE" ]]; then
   source "$M06_FILE"
   log "INFO" "Loaded $M06_FILE."
 else

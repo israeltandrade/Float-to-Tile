@@ -1,0 +1,10 @@
+2025-12-01 08:49:32 [AC07_Toggle-Float] - INFO: Loaded configuration from /home/israel/.config/Scripts_X11/Float-to-Tile/global_config.conf
+2025-12-01 08:49:32 [AC07_Toggle-Float] - WARNING: xprop returned empty or 0x0. Falling back to xdotool.
+2025-12-01 08:49:32 [AC07_Toggle-Float] - INFO: Active WID raw: 106954756 (decimal: 106954756, canonical: 0x6600004).
+2025-12-01 08:49:36 [AC07_Toggle-Float] - INFO: Loaded environment data.
+2025-12-01 08:49:36 [AC07_Toggle-Float] - INFO: Found active window in list: WID 0x6600004 on monitor 2. Geometry: 293,202,2294x1212
+2025-12-01 08:49:36 [AC07_Toggle-Float] - WARNING: last-valid-state contains block for 0x6600004 but FLOAT list did not. Forcing restore to avoid stale state.
+2025-12-01 08:49:36 [AC07_Toggle-Float] - ACTION: Transitioning 0x6600004 from FLOATING to TILED (restoring geometry).
+2025-12-01 08:49:36 [AC07_Toggle-Float] - INFO: Found saved geometry: 13,57,2854x1502.
+2025-12-01 08:49:36 [AC07_Toggle-Float] - INFO: Removed all saved state blocks for 0x6600004 from /home/israel/.config/Scripts_X11/Float-to-Tile/Actions/Actions_Last-Valid-States/AC07_Toggle-Float.last-valid-state.
+2025-12-01 08:49:36 [AC07_Toggle-Float] - SUCCESS: Restored geometry for 0x6600004.

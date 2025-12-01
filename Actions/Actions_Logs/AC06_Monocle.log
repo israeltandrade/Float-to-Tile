@@ -1,0 +1,5 @@
+2025-12-01 08:48:51 [AC06_Monocle] - INFO: Script started (v1.8 Clean).
+2025-12-01 08:48:55 [AC06_Monocle] - INFO: ACTIVE_DESKTOP=1
+2025-12-01 08:48:55 [AC06_Monocle] - INFO: MONITOR 1 - applying Monocle to 3 window(s).
+2025-12-01 08:48:56 [AC06_Monocle] - INFO: MONITOR 2 - applying Monocle to 1 window(s).
+2025-12-01 08:48:56 [AC06_Monocle] - INFO: Last valid state written to /home/israel/.config/Scripts_X11/Float-to-Tile/Actions/Actions_Last-Valid-States/AC06_Monocle.last-valid-state

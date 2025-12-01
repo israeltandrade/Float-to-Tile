@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # File: AC01_Tile-Vertical.sh
 # Description: v2.1.1 - Vertical tiling with Min-Width, overlap handling and terminal grid fix.
 # Notes:
@@ -60,13 +60,15 @@ if [[ -f "$DATA_DIR/01_Screen-Resolution.data" ]] && \
    [[ -f "$DATA_DIR/02_Desktop-Details.data" ]] && \
    [[ -f "$DATA_DIR/03_Window-List.data" ]] && \
    [[ -f "$DATA_DIR/04_Monitor-Area.data" ]] && \
-   [[ -f "$DATA_DIR/06_Window-Cycle-Map.data" ]]; then
+   [[ -f "$DATA_DIR/06_Window-Cycle-Map.data" ]] && \
+   [[ -f "$DATA_DIR/08_Normalize-Windows.data" ]]; then
     
     source "$DATA_DIR/01_Screen-Resolution.data"
     source "$DATA_DIR/02_Desktop-Details.data"
     source "$DATA_DIR/03_Window-List.data" 
     source "$DATA_DIR/04_Monitor-Area.data"
     source "$DATA_DIR/06_Window-Cycle-Map.data"
+    source "$DATA_DIR/08_Normalize-Windows.data"
     log "INFO: Loaded all required data modules."
 else
     log "ERROR: Required data files not found. Exiting."
@@ -139,9 +141,27 @@ for MONITOR_ID in $(seq 1 "${MONITOR_COUNT}"); do
 
     GROUP_MAX_MIN_WIDTH=0
     for wid in "${WIDS_ARRAY[@]}"; do
-        MW="${MAP_WID_MIN_WIDTH[$wid]:-100}"
-        if [ "$MW" -gt "$GROUP_MAX_MIN_WIDTH" ]; then
-            GROUP_MAX_MIN_WIDTH=$MW
+        # Retrieve the original MIN_WIDTH from 03_Window-List.data
+        MW_ORIGINAL="${MAP_WID_MIN_WIDTH[$wid]:-100}"
+
+        # Retrieve BASE_W from 08_Normalize-Windows.data for potential override
+        VAR_BASE_W_FROM_08="WID_${wid}_BASE_W"
+        OVERRIDDEN_BASE_W="${!VAR_BASE_W_FROM_08:-}"
+
+        # Determine the effective minimum width for this window
+        CURRENT_MIN_W="$MW_ORIGINAL"
+        # If 08_Normalize-Windows.data has an overridden BASE_W of 1 for a Firefox window,
+        # use this minimal value.
+        if [[ -n "$OVERRIDDEN_BASE_W" && "$OVERRIDDEN_BASE_W" -eq 1 ]]; then
+            # Check if it's explicitly a Firefox window (class or resource check)
+            # This relies on MAP_WID_CLASS being correctly populated from 03_Window-List.data
+            if [[ "${MAP_WID_CLASS[$wid]}" == "Navigator" || "${MAP_WID_CLASS[$wid]}" == "firefox" ]]; then
+                CURRENT_MIN_W=1
+            fi
+        fi
+        
+        if [ "$CURRENT_MIN_W" -gt "$GROUP_MAX_MIN_WIDTH" ]; then
+            GROUP_MAX_MIN_WIDTH=$CURRENT_MIN_W
         fi
     done
     
@@ -156,11 +176,27 @@ for MONITOR_ID in $(seq 1 "${MONITOR_COUNT}"); do
         WINDOW_W=$((W_AREA - 2 * GAP_SIZE_PX))
         WINDOW_H=$((H_AREA - 2 * GAP_SIZE_PX))
         
-        # ===== TERMINAL FIX =====
-        CLASS="${MAP_WID_CLASS[$WID]:-unknown}"
-        if [[ "$CLASS" == "xfce4-terminal" ]]; then
-            WINDOW_W=$((WINDOW_W - 20))
-            WINDOW_H=$((WINDOW_H - 35))
+        # ===== GRID-UNIT WINDOW ADJUSTMENT =====
+        VAR_HAS_GRID="WID_${WID}_HAS_GRID"
+        if [[ "${!VAR_HAS_GRID:-}" == "1" ]]; then
+            VAR_BASE_W="WID_${WID}_BASE_W"
+            VAR_BASE_H="WID_${WID}_BASE_H"
+            VAR_INC_W="WID_${WID}_INC_W"
+            VAR_INC_H="WID_${WID}_INC_H"
+
+            BASE_W=${!VAR_BASE_W:-0}
+            BASE_H=${!VAR_BASE_H:-0}
+            INC_W=${!VAR_INC_W:-1}
+            INC_H=${!VAR_INC_H:-1}
+
+            if [ "$INC_W" -eq 0 ]; then INC_W=1; fi
+            if [ "$INC_H" -eq 0 ]; then INC_H=1; fi
+
+            GRID_W=$(( (WINDOW_W - BASE_W) / INC_W ))
+            GRID_H=$(( (WINDOW_H - BASE_H) / INC_H ))
+
+            WINDOW_W=$(( BASE_W + GRID_W * INC_W ))
+            WINDOW_H=$(( BASE_H + GRID_H * INC_H ))
         fi
 
         wmctrl -i -r "$WID" -e 0,"$WINDOW_X","$WINDOW_Y","$WINDOW_W","$WINDOW_H"
@@ -200,11 +236,27 @@ for MONITOR_ID in $(seq 1 "${MONITOR_COUNT}"); do
                     WINDOW_W=$((WINDOW_W - GAP_SIZE_PX))
                 fi
                 
-                # ===== TERMINAL FIX =====
-                CLASS="${MAP_WID_CLASS[$WID]:-unknown}"
-                if [[ "$CLASS" == "xfce4-terminal" ]]; then
-                    WINDOW_W=$((WINDOW_W - 16))
-                    WINDOW_H=$((WINDOW_H - 32))
+                # ===== GRID-UNIT WINDOW ADJUSTMENT =====
+                VAR_HAS_GRID="WID_${WID}_HAS_GRID"
+                if [[ "${!VAR_HAS_GRID:-}" == "1" ]]; then
+                    VAR_BASE_W="WID_${WID}_BASE_W"
+                    VAR_BASE_H="WID_${WID}_BASE_H"
+                    VAR_INC_W="WID_${WID}_INC_W"
+                    VAR_INC_H="WID_${WID}_INC_H"
+
+                    BASE_W=${!VAR_BASE_W:-0}
+                    BASE_H=${!VAR_BASE_H:-0}
+                    INC_W=${!VAR_INC_W:-1}
+                    INC_H=${!VAR_INC_H:-1}
+
+                    if [ "$INC_W" -eq 0 ]; then INC_W=1; fi
+                    if [ "$INC_H" -eq 0 ]; then INC_H=1; fi
+
+                    GRID_W=$(( (WINDOW_W - BASE_W) / INC_W ))
+                    GRID_H=$(( (WINDOW_H - BASE_H) / INC_H ))
+
+                    WINDOW_W=$(( BASE_W + GRID_W * INC_W ))
+                    WINDOW_H=$(( BASE_H + GRID_H * INC_H ))
                 fi
                 
                 wmctrl -i -r "$WID" -e 0,"$WINDOW_X","$WINDOW_Y","$WINDOW_W","$WINDOW_H"
@@ -237,15 +289,27 @@ for MONITOR_ID in $(seq 1 "${MONITOR_COUNT}"); do
                 WINDOW_W=$TARGET_W
                 WINDOW_H=$((H_AREA - 2 * GAP_SIZE_PX))
                 
-                if [ "$idx" -eq $((NUM_WINDOWS - 1)) ]; then
-                    WINDOW_X=$(( (X_AREA + W_AREA) - TARGET_W - GAP_SIZE_PX ))
-                fi
+                # ===== GRID-UNIT WINDOW ADJUSTMENT =====
+                VAR_HAS_GRID="WID_${WID}_HAS_GRID"
+                if [[ "${!VAR_HAS_GRID:-}" == "1" ]]; then
+                    VAR_BASE_W="WID_${WID}_BASE_W"
+                    VAR_BASE_H="WID_${WID}_BASE_H"
+                    VAR_INC_W="WID_${WID}_INC_W"
+                    VAR_INC_H="WID_${WID}_INC_H"
 
-                # ===== TERMINAL FIX =====
-                CLASS="${MAP_WID_CLASS[$WID]:-unknown}"
-                if [[ "$CLASS" == "xfce4-terminal" ]]; then
-                    WINDOW_W=$((WINDOW_W - 16))
-                    WINDOW_H=$((WINDOW_H - 32))
+                    BASE_W=${!VAR_BASE_W:-0}
+                    BASE_H=${!VAR_BASE_H:-0}
+                    INC_W=${!VAR_INC_W:-1}
+                    INC_H=${!VAR_INC_H:-1}
+
+                    if [ "$INC_W" -eq 0 ]; then INC_W=1; fi
+                    if [ "$INC_H" -eq 0 ]; then INC_H=1; fi
+
+                    GRID_W=$(( (WINDOW_W - BASE_W) / INC_W ))
+                    GRID_H=$(( (WINDOW_H - BASE_H) / INC_H ))
+
+                    WINDOW_W=$(( BASE_W + GRID_W * INC_W ))
+                    WINDOW_H=$(( BASE_H + GRID_H * INC_H ))
                 fi
 
                 wmctrl -i -r "$WID" -e 0,"$WINDOW_X","$WINDOW_Y","$WINDOW_W","$WINDOW_H"

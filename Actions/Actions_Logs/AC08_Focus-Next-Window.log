@@ -1,0 +1,15 @@
+2025-11-27 15:07:10 [INFO] - Script started.
+2025-11-27 15:07:10 [INFO] - Found M03 data: /home/israel/.config/Scripts_X11/Float-to-Tile/Data/03_Window-List.data
+2025-11-27 15:07:10 [INFO] - Found M06 data: /home/israel/.config/Scripts_X11/Float-to-Tile/Data/06_Window-Cycle-Map.data
+2025-11-27 15:07:10 [INFO] - Both M03 and M06 available. Skipping run.sh.
+2025-11-27 15:07:10 [INFO] - Loaded /home/israel/.config/Scripts_X11/Float-to-Tile/global_config.conf.
+2025-11-27 15:07:10 [INFO] - Loaded /home/israel/.config/Scripts_X11/Float-to-Tile/Data/03_Window-List.data.
+2025-11-27 15:07:10 [INFO] - Loaded /home/israel/.config/Scripts_X11/Float-to-Tile/Data/06_Window-Cycle-Map.data.
+2025-11-27 15:07:10 [INFO] - Initial ACTIVE_DESKTOP=0 ACTIVE_MONITOR=0 ACTIVE_WID=0x0
+2025-11-27 15:07:10 [INFO] - Normalized ACTIVE_WID => 0x0
+2025-11-27 15:07:10 [INFO] - xdotool returned window focus: 50331945 -> 0x3000129
+2025-11-27 15:07:10 [INFO] - Found WID in group D0_M2 (var D0_M2_CYCLE_LIST), index 1, group count 3
+2025-11-27 15:07:10 [INFO] - Cycling: current index 1 -> next index 2; NEXT_WID=0x7600002
+2025-11-27 15:07:10 [INFO] - Attempting to focus 0x7600002 with wmctrl.
+2025-11-27 15:07:10 [SUCCESS] - Focused 0x7600002 successfully.
+2025-11-27 15:07:10 [INFO] - Last valid state written to /home/israel/.config/Scripts_X11/Float-to-Tile/Actions/Actions_Last-Valid-States/AC08_Focus-Next-Window.last-valid-state

@@ -1,0 +1,8 @@
+2025-11-27 14:51:41 [AC01_Tile-Vertical] - INFO: Script started (v2.1.1 Terminal Fix).
+2025-11-27 14:51:41 [AC01_Tile-Vertical] - INFO: Updating environment data via run.sh...
+2025-11-27 14:51:45 [AC01_Tile-Vertical] - INFO: Environment data updated successfully.
+2025-11-27 14:51:45 [AC01_Tile-Vertical] - INFO: Loaded all required data modules.
+2025-11-27 14:51:45 [AC01_Tile-Vertical] - INFO: Building WID maps...
+2025-11-27 14:51:45 [AC01_Tile-Vertical] - MONITOR 1: 1 windows. Max Min-Width required: 58 px.
+2025-11-27 14:51:45 [AC01_Tile-Vertical] - MONITOR 2: 2 windows. Max Min-Width required: 600 px.
+2025-11-27 14:51:45 [AC01_Tile-Vertical] -   -> Mode: TILED (Std Width: 1430 vs Req: 600)

@@ -103,12 +103,14 @@ if [[ -f "$DATA_DIR/07_Layout-Matrices.data" ]]; then
     source "$DATA_DIR/04_Monitor-Area.data"
     source "$DATA_DIR/06_Window-Cycle-Map.data"
     source "$DATA_DIR/07_Layout-Matrices.data"
+    source "$DATA_DIR/08_Normalize-Windows.data"
 else
     source "$DATA_DIR/01_Screen-Resolution.data"
     source "$DATA_DIR/02_Desktop-Details.data"
     source "$DATA_DIR/03_Window-List.data"
     source "$DATA_DIR/04_Monitor-Area.data"
     source "$DATA_DIR/06_Window-Cycle-Map.data"
+    source "$DATA_DIR/08_Normalize-Windows.data"
 fi
 
 declare -A MAP_MIN_W
@@ -125,9 +127,34 @@ for ((i=1; i<=WINDOW_COUNT; i++)); do
 
     if [[ -n "${!VAR_WID:-}" ]]; then
         WID="${!VAR_WID}"
-        MAP_MIN_W["$WID"]="${!VAR_MW:-100}"
-        MAP_MIN_H["$WID"]="${!VAR_MH:-100}"
-        MAP_CLASS["$WID"]="${!VAR_CLS:-unknown}"
+        ORIGINAL_MIN_W="${!VAR_MW:-100}"
+        ORIGINAL_MIN_H="${!VAR_MH:-100}"
+        CLASS_NAME="${!VAR_CLS:-unknown}"
+
+        # Get overridden base values from 08_Normalize-Windows.data
+        VAR_BASE_W_FROM_08="WID_${WID}_BASE_W"
+        VAR_BASE_H_FROM_08="WID_${WID}_BASE_H"
+        OVERRIDDEN_BASE_W="${!VAR_BASE_W_FROM_08:-}"
+        OVERRIDDEN_BASE_H="${!VAR_BASE_H_FROM_08:-}"
+
+        # Apply override for Firefox if its base values are set to 1
+        if [[ "$CLASS_NAME" == "Navigator" || "$CLASS_NAME" == "firefox" ]]; then
+            if [[ -n "$OVERRIDDEN_BASE_W" && "$OVERRIDDEN_BASE_W" -eq 1 ]]; then
+                MAP_MIN_W["$WID"]=1
+            else
+                MAP_MIN_W["$WID"]="$ORIGINAL_MIN_W"
+            fi
+            if [[ -n "$OVERRIDDEN_BASE_H" && "$OVERRIDDEN_BASE_H" -eq 1 ]]; then
+                MAP_MIN_H["$WID"]=1
+            else
+                MAP_MIN_H["$WID"]="$ORIGINAL_MIN_H"
+            fi
+        else
+            MAP_MIN_W["$WID"]="$ORIGINAL_MIN_W"
+            MAP_MIN_H["$WID"]="$ORIGINAL_MIN_H"
+        fi
+
+        MAP_CLASS["$WID"]="$CLASS_NAME"
         t="${!VAR_TITLE:-unknown}"
         t="${t//[$'\r\n']/ }"
         MAP_TITLE["$WID"]="$t"
@@ -164,9 +191,28 @@ recursive_fibonacci() {
 
         local VISUAL_W=$FINAL_W
         local VISUAL_H=$FINAL_H
-        if [[ "$CLASS" == "xfce4-terminal" ]]; then
-            VISUAL_W=$((VISUAL_W - 0))
-            VISUAL_H=$((VISUAL_H - 32))
+        
+        # ===== GRID-UNIT WINDOW ADJUSTMENT =====
+        VAR_HAS_GRID="WID_${CURRENT_WID}_HAS_GRID"
+        if [[ "${!VAR_HAS_GRID:-}" == "1" ]]; then
+            VAR_BASE_W="WID_${CURRENT_WID}_BASE_W"
+            VAR_BASE_H="WID_${CURRENT_WID}_BASE_H"
+            VAR_INC_W="WID_${CURRENT_WID}_INC_W"
+            VAR_INC_H="WID_${CURRENT_WID}_INC_H"
+
+            BASE_W=${!VAR_BASE_W:-0}
+            BASE_H=${!VAR_BASE_H:-0}
+            INC_W=${!VAR_INC_W:-1}
+            INC_H=${!VAR_INC_H:-1}
+
+            if [ "$INC_W" -eq 0 ]; then INC_W=1; fi
+            if [ "$INC_H" -eq 0 ]; then INC_H=1; fi
+
+            GRID_W=$(( (VISUAL_W - BASE_W) / INC_W ))
+            GRID_H=$(( (VISUAL_H - BASE_H) / INC_H ))
+
+            VISUAL_W=$(( BASE_W + GRID_W * INC_W ))
+            VISUAL_H=$(( BASE_H + GRID_H * INC_H ))
         fi
 
         echo "${CURRENT_WID}:${FINAL_X},${FINAL_Y},${VISUAL_W},${VISUAL_H}"
@@ -196,9 +242,28 @@ recursive_fibonacci() {
 
         local VISUAL_W=$ACTUAL_W
         local VISUAL_H=$ACTUAL_H
-        if [[ "$CLASS" == "xfce4-terminal" ]]; then
-            VISUAL_W=$((VISUAL_W - 16))
-            VISUAL_H=$((VISUAL_H - 32))
+        
+        # ===== GRID-UNIT WINDOW ADJUSTMENT =====
+        VAR_HAS_GRID="WID_${CURRENT_WID}_HAS_GRID"
+        if [[ "${!VAR_HAS_GRID:-}" == "1" ]]; then
+            VAR_BASE_W="WID_${CURRENT_WID}_BASE_W"
+            VAR_BASE_H="WID_${CURRENT_WID}_BASE_H"
+            VAR_INC_W="WID_${CURRENT_WID}_INC_W"
+            VAR_INC_H="WID_${CURRENT_WID}_INC_H"
+
+            BASE_W=${!VAR_BASE_W:-0}
+            BASE_H=${!VAR_BASE_H:-0}
+            INC_W=${!VAR_INC_W:-1}
+            INC_H=${!VAR_INC_H:-1}
+
+            if [ "$INC_W" -eq 0 ]; then INC_W=1; fi
+            if [ "$INC_H" -eq 0 ]; then INC_H=1; fi
+
+            GRID_W=$(( (VISUAL_W - BASE_W) / INC_W ))
+            GRID_H=$(( (VISUAL_H - BASE_H) / INC_H ))
+
+            VISUAL_W=$(( BASE_W + GRID_W * INC_W ))
+            VISUAL_H=$(( BASE_H + GRID_H * INC_H ))
         fi
 
         echo "${CURRENT_WID}:${POS_X},${POS_Y},${VISUAL_W},${VISUAL_H}"
@@ -226,9 +291,28 @@ recursive_fibonacci() {
 
         local VISUAL_W=$ACTUAL_W
         local VISUAL_H=$ACTUAL_H
-        if [[ "$CLASS" == "xfce4-terminal" ]]; then
-            VISUAL_W=$((VISUAL_W - 16))
-            VISUAL_H=$((VISUAL_H - 32))
+
+        # ===== GRID-UNIT WINDOW ADJUSTMENT =====
+        VAR_HAS_GRID="WID_${CURRENT_WID}_HAS_GRID"
+        if [[ "${!VAR_HAS_GRID:-}" == "1" ]]; then
+            VAR_BASE_W="WID_${CURRENT_WID}_BASE_W"
+            VAR_BASE_H="WID_${CURRENT_WID}_BASE_H"
+            VAR_INC_W="WID_${CURRENT_WID}_INC_W"
+            VAR_INC_H="WID_${CURRENT_WID}_INC_H"
+
+            BASE_W=${!VAR_BASE_W:-0}
+            BASE_H=${!VAR_BASE_H:-0}
+            INC_W=${!VAR_INC_W:-1}
+            INC_H=${!VAR_INC_H:-1}
+
+            if [ "$INC_W" -eq 0 ]; then INC_W=1; fi
+            if [ "$INC_H" -eq 0 ]; then INC_H=1; fi
+
+            GRID_W=$(( (VISUAL_W - BASE_W) / INC_W ))
+            GRID_H=$(( (VISUAL_H - BASE_H) / INC_H ))
+
+            VISUAL_W=$(( BASE_W + GRID_W * INC_W ))
+            VISUAL_H=$(( BASE_H + GRID_H * INC_H ))
         fi
 
         echo "${CURRENT_WID}:${POS_X},${POS_Y},${VISUAL_W},${VISUAL_H}"

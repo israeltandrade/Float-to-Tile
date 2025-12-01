@@ -1,0 +1,17 @@
+2025-12-01 08:38:01 [INFO] - Script started.
+2025-12-01 08:38:01 [INFO] - Found M03 data: /home/israel/.config/Scripts_X11/Float-to-Tile/Data/03_Window-List.data
+2025-12-01 08:38:01 [INFO] - Found M06 data: /home/israel/.config/Scripts_X11/Float-to-Tile/Data/06_Window-Cycle-Map.data
+2025-12-01 08:38:01 [INFO] - Found screen resolution data: /home/israel/.config/Scripts_X11/Float-to-Tile/Data/01_Screen-Resolution.data
+2025-12-01 08:38:01 [INFO] - Found monitor area data: /home/israel/.config/Scripts_X11/Float-to-Tile/Data/04_Monitor-Area.data
+2025-12-01 08:38:01 [INFO] - Loaded /home/israel/.config/Scripts_X11/Float-to-Tile/global_config.conf.
+2025-12-01 08:38:01 [INFO] - Loaded /home/israel/.config/Scripts_X11/Float-to-Tile/Data/04_Monitor-Area.data.
+2025-12-01 08:38:01 [INFO] - Loaded environment data.
+2025-12-01 08:38:01 [INFO] - Initial ACTIVE_DESKTOP=0 ACTIVE_MONITOR=0 ACTIVE_WID=0x0
+2025-12-01 08:38:01 [INFO] - xdotool returned window focus: 81788932 -> 0x4e00004
+2025-12-01 08:38:01 [INFO] - Derived CURRENT_MONITOR from M03 mapping: 2
+2025-12-01 08:38:01 [INFO] - Current monitor 2 -> next monitor 1 (MONITOR_COUNT=2)
+2025-12-01 08:38:01 [INFO] - Operating on desktop 2
+2025-12-01 08:38:01 [INFO] - Candidate target first window on D2_M1 is 0x4000009
+2025-12-01 08:38:01 [INFO] - Attempting to focus 0x4000009 with wmctrl.
+2025-12-01 08:38:01 [SUCCESS] - Focused 0x4000009 successfully.
+2025-12-01 08:38:01 [INFO] - Last valid state written to /home/israel/.config/Scripts_X11/Float-to-Tile/Actions/Actions_Last-Valid-States/AC10_Focus-Next-Monitor.last-valid-state

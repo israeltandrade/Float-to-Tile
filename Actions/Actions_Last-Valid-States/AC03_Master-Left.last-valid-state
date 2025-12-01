@@ -1,0 +1,12 @@
+=== DESKTOP 1 (2880x985  2:  ) ===
+
+--- MONITOR 1 (eDP-1-1) ---
+# Window Names: Gemini
+# Windows WIDs:
+0x07400003:
+
+--- MONITOR 2 (HDMI-0) ---
+# Window Names: Mozilla Firefox | Visual Studio Code
+# Windows WIDs:
+0x0700003e: 0x05c00004:
+

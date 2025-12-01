@@ -1,0 +1,9 @@
+2025-11-27 14:47:06 [AC02_Tile-Horizontal] - INFO: Script started (v2.2 Terminal Fix).
+2025-11-27 14:47:06 [AC02_Tile-Horizontal] - INFO: Updating environment data via run.sh...
+2025-11-27 14:47:11 [AC02_Tile-Horizontal] - INFO: Environment data updated successfully.
+2025-11-27 14:47:11 [AC02_Tile-Horizontal] - INFO: Loaded all required data modules (including Min-Height).
+2025-11-27 14:47:11 [AC02_Tile-Horizontal] - INFO: Building WID maps...
+2025-11-27 14:47:11 [AC02_Tile-Horizontal] - MONITOR 1: 1 windows. Max Min-Height required: 31 px.
+2025-11-27 14:47:11 [AC02_Tile-Horizontal] - MONITOR 1: Applying full area geometry to single window.
+2025-11-27 14:47:11 [AC02_Tile-Horizontal] - MONITOR 2: 2 windows. Max Min-Height required: 405 px.
+2025-11-27 14:47:11 [AC02_Tile-Horizontal] -   -> Mode: TILED (Std Height: 754 vs Req: 405)

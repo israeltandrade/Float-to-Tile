@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # File: AC06_Monocle.sh
 # Description: v1.8 - Clean, safe, no-sticky. Applies the Monocle layout for windows on the ACTIVE_DESKTOP only.
 # Notes:
@@ -61,13 +61,15 @@ if [[ -f "$DATA_DIR/01_Screen-Resolution.data" ]] && \
    [[ -f "$DATA_DIR/02_Desktop-Details.data" ]] && \
    [[ -f "$DATA_DIR/03_Window-List.data" ]] && \
    [[ -f "$DATA_DIR/04_Monitor-Area.data" ]] && \
-   [[ -f "$DATA_DIR/06_Window-Cycle-Map.data" ]]; then
+   [[ -f "$DATA_DIR/06_Window-Cycle-Map.data" ]] && \
+   [[ -f "$DATA_DIR/08_Normalize-Windows.data" ]]; then
 
     source "$DATA_DIR/01_Screen-Resolution.data"
     source "$DATA_DIR/02_Desktop-Details.data"
     source "$DATA_DIR/03_Window-List.data"
     source "$DATA_DIR/04_Monitor-Area.data"
     source "$DATA_DIR/06_Window-Cycle-Map.data"
+    source "$DATA_DIR/08_Normalize-Windows.data"
 else
     log "ERROR: Required data files (01,02,03,04,06) not found. Exiting."
     exit 1
@@ -177,10 +179,27 @@ for MONITOR_ID in $MONITOR_IDS; do
         TARGET_W=$GAPED_W
         TARGET_H=$GAPED_H
 
-        CLASS="${MAP_WID_CLASS[$WID]:-unknown}"
-        if [[ "$CLASS" == "xfce4-terminal" ]]; then
-            TARGET_W=$((GAPED_W - 5))
-            TARGET_H=$((GAPED_H - 40))
+        # ===== GRID-UNIT WINDOW ADJUSTMENT =====
+        VAR_HAS_GRID="WID_${WID}_HAS_GRID"
+        if [[ "${!VAR_HAS_GRID:-}" == "1" ]]; then
+            VAR_BASE_W="WID_${WID}_BASE_W"
+            VAR_BASE_H="WID_${WID}_BASE_H"
+            VAR_INC_W="WID_${WID}_INC_W"
+            VAR_INC_H="WID_${WID}_INC_H"
+
+            BASE_W=${!VAR_BASE_W:-0}
+            BASE_H=${!VAR_BASE_H:-0}
+            INC_W=${!VAR_INC_W:-1}
+            INC_H=${!VAR_INC_H:-1}
+
+            if [ "$INC_W" -eq 0 ]; then INC_W=1; fi
+            if [ "$INC_H" -eq 0 ]; then INC_H=1; fi
+
+            GRID_W=$(( (TARGET_W - BASE_W) / INC_W ))
+            GRID_H=$(( (TARGET_H - BASE_H) / INC_H ))
+
+            TARGET_W=$(( BASE_W + GRID_W * INC_W ))
+            TARGET_H=$(( BASE_H + GRID_H * INC_H ))
         fi
 
         wmctrl -i -r "$WID" -e 0,"$GAPED_X","$GAPED_Y","$TARGET_W","$TARGET_H" || true
